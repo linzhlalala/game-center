@@ -113,6 +113,7 @@
       segments: [{ x, y }],
       path: [{ x, y }],
       dead: false,
+      invuln: 0,
       // AI state
       mode: "forage",       // forage | hunt | flee
       target: null,
@@ -400,9 +401,25 @@
           if (!seg) continue;
           const hit = (ra + rb * 0.55) * (ra + rb * 0.55);
           if (dist2(a.x, a.y, seg.x, seg.y) < hit) {
-            // higher level wins; tie -> longer wins
             const la = levelOf(a), lb = levelOf(b);
-            if (la > lb || (la === lb && a.length >= b.length)) killSnake(b, a);
+            const aWins = la > lb || (la === lb && a.length >= b.length);
+
+            // Special case: player hits the boss but isn't big enough yet.
+            // Instead of an instant death, bounce the player away, give a
+            // brief moment of invulnerability, and shave a little length.
+            if (!aWins && a.isPlayer && b.isBoss) {
+              if (player.invuln > 0) break; // still in the grace window
+              bouncePlayerOffBoss(b);
+              break;
+            }
+            if (!aWins && b.isPlayer && a.isBoss) {
+              // (rare: iterating with boss as 'a') handled symmetrically
+              if (player.invuln > 0) break;
+              bouncePlayerOffBoss(a);
+              break;
+            }
+
+            if (aWins) killSnake(b, a);
             else killSnake(a, b);
             break;
           }
@@ -411,18 +428,34 @@
     }
   }
 
+  // Player survives a boss body-check: knock back, brief i-frames, small cost.
+  function bouncePlayerOffBoss(bossSnake) {
+    const away = Math.atan2(player.y - bossSnake.y, player.x - bossSnake.x);
+    player.x = clamp(player.x + Math.cos(away) * 90, 0, WORLD.w);
+    player.y = clamp(player.y + Math.sin(away) * 90, 0, WORLD.h);
+    player.angle = away;                 // face away from the boss
+    player.invuln = 1.2;                 // 1.2s grace so you can escape
+    player.length = Math.max(6, player.length - 4); // small penalty
+    shake = Math.max(shake, 14);
+    spawnParticles(player.x, player.y, "#ffffff", 14, 200);
+    banner("OUCH! GET BIGGER OR RUN!", 1.2);
+  }
+
   function killSnake(s, by) {
     if (s.dead) return;
     s.dead = true;
 
-    // corpse -> food burst
-    for (let i = 0; i < s.segments.length; i += 2) {
-      const seg = s.segments[i];
-      if (!seg) continue;
-      foods.push(makeFood(seg.x + rand(-8, 8), seg.y + rand(-8, 8), true, s.color));
-    }
-    if (foods.length > FOOD_COUNT + 260) {
-      foods.splice(0, foods.length - (FOOD_COUNT + 260));
+    // corpse -> food burst (skip for the boss so we never leave a big red
+    // pile behind; corpse food is always neutral gold, not the snake's color)
+    if (!s.isBoss) {
+      for (let i = 0; i < s.segments.length; i += 2) {
+        const seg = s.segments[i];
+        if (!seg) continue;
+        foods.push(makeFood(seg.x + rand(-8, 8), seg.y + rand(-8, 8), true, "#ffd23f"));
+      }
+      if (foods.length > FOOD_COUNT + 260) {
+        foods.splice(0, foods.length - (FOOD_COUNT + 260));
+      }
     }
 
     // visual burst (bigger for the boss)
@@ -745,6 +778,7 @@
   // ============================================================
   function update(dt) {
     elapsed += dt;
+    if (player.invuln > 0) player.invuln -= dt;
     updatePointerAngle();
 
     // ----- Round countdown -> spawn boss -----
