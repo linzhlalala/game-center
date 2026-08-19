@@ -168,26 +168,33 @@
   function spawnBoss() {
     bossSpawned = true;
     phase = "boss";
-    // Boss is ~15% above the player's current level, min a solid size.
-    const targetLevel = Math.max(levelOf(player) + 3, Math.ceil(levelOf(player) * 1.15));
-    const bossLen = Math.max(targetLevel * 12, 60);
+    // Boss starts just a little above the player's level, so you can out-grow
+    // it during the fight. It does NOT grow much, so it's a beatable target.
+    const targetLevel = levelOf(player) + 2;
+    const bossLen = Math.max(targetLevel * 12, 40);
 
-    // spawn at arena edge, away from player
-    let bx, by;
-    for (let tries = 0; tries < 10; tries++) {
-      bx = rand(WORLD.w * 0.1, WORLD.w * 0.9);
-      by = rand(WORLD.h * 0.1, WORLD.h * 0.9);
-      if (dist2(bx, by, player.x, player.y) > 900 * 900) break;
-    }
+    // Spawn at the arena corner FARTHEST from the player, so it never appears
+    // right on top of you.
+    const cornerX = player.x < WORLD.w / 2 ? WORLD.w - 200 : 200;
+    const cornerY = player.y < WORLD.h / 2 ? WORLD.h - 200 : 200;
+
     boss = makeSnake(false, "#c1121f", bossLen);
-    boss.x = bx; boss.y = by;
+    boss.x = cornerX; boss.y = cornerY;
     boss.isBoss = true;
-    boss.baseSpeed = 200;
-    boss.speed = 200;
+    // Boss is a touch SLOWER than the player's normal speed, so a growing
+    // player can keep distance while fattening up, then strike.
+    boss.baseSpeed = 170;
+    boss.speed = 170;
+    // Warm-up: boss is sluggish for the first ~2.5s after the warning.
+    boss.warmup = 2.5;
     snakes.push(boss);
 
-    banner("⚠ BOSS INCOMING ⚠", 2.2);
+    banner("⚠ BOSS INCOMING ⚠", 2.4);
     shake = 18;
+    // Follow-up coaching hint so the player knows how to win.
+    setTimeout(() => {
+      if (running && phase === "boss") banner("EAT PELLETS TO OUT-GROW IT, THEN RAM ITS HEAD!", 3);
+    }, 2500);
   }
 
   // ---------- Input ----------
@@ -301,6 +308,13 @@
       s.length -= 2.5 * dt;
     } else {
       s.speed = s.baseSpeed;
+    }
+
+    // Boss warm-up: crawls slowly right after spawning so it never
+    // ambushes the player the instant it appears.
+    if (s.warmup > 0) {
+      s.warmup -= dt;
+      s.speed *= 0.35;
     }
   }
 

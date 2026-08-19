@@ -1,13 +1,14 @@
 // ============================================================
 // Shared player profile: name + main color.
-// Stored in a cookie so every game can read the same settings.
+// Stored in localStorage so every game can read the same settings.
+// (localStorage has no path scoping and works under file:// too,
+// unlike cookies which broke on sub-paths / local files.)
 // Include this on the home page and in each game.
 // ============================================================
 (function (global) {
   "use strict";
 
-  const COOKIE = "gc_player";
-  const MAX_AGE = 60 * 60 * 24 * 365; // 1 year
+  const KEY = "gc_player";
 
   // Preset palette the player can pick from on the home page.
   const PALETTE = [
@@ -18,19 +19,21 @@
 
   const DEFAULT = { name: "Player", color: "#3ddc84" };
 
-  function readCookie() {
-    const m = document.cookie.match(new RegExp("(?:^|; )" + COOKIE + "=([^;]*)"));
-    if (!m) return null;
+  function readStore() {
     try {
-      return JSON.parse(decodeURIComponent(m[1]));
+      const raw = global.localStorage.getItem(KEY);
+      return raw ? JSON.parse(raw) : null;
     } catch (e) {
       return null;
     }
   }
 
-  function writeCookie(profile) {
-    const val = encodeURIComponent(JSON.stringify(profile));
-    document.cookie = `${COOKIE}=${val}; path=/; max-age=${MAX_AGE}; samesite=lax`;
+  function writeStore(profile) {
+    try {
+      global.localStorage.setItem(KEY, JSON.stringify(profile));
+    } catch (e) {
+      // storage may be unavailable (private mode); fail silently
+    }
   }
 
   function isValidColor(c) {
@@ -42,7 +45,7 @@
 
     // Returns a safe profile, filling in defaults for anything missing/invalid.
     get() {
-      const raw = readCookie() || {};
+      const raw = readStore() || {};
       const name = typeof raw.name === "string" && raw.name.trim()
         ? raw.name.trim().slice(0, 16)
         : DEFAULT.name;
@@ -64,7 +67,7 @@
         name: (profile.name != null ? String(profile.name) : cur.name).trim().slice(0, 16) || DEFAULT.name,
         color: isValidColor(profile.color) ? profile.color : cur.color,
       };
-      writeCookie(next);
+      writeStore(next);
       return next;
     },
   };
