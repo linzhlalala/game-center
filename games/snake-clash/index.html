@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Snake Clash</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="game-wrap">
+    <canvas id="game"></canvas>
+
+    <!-- HUD -->
+    <div id="hud">
+      <div class="hud-item">
+        <span class="hud-label">Length</span>
+        <span id="score">1</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">Rank</span>
+        <span id="rank">-</span>
+      </div>
+    </div>
+
+    <!-- Start screen -->
+    <div id="start-screen" class="overlay">
+      <h1>🐍 Snake Clash</h1>
+      <p>Eat to grow bigger. Crash into a smaller snake to eat it, but avoid bigger ones!</p>
+      <p class="hint">Use your mouse or finger to steer</p>
+      <button id="start-btn">Play</button>
+      <a class="back-link" href="../../index.html">← Back to Game Center</a>
+    </div>
+
+    <!-- Game over screen -->
+    <div id="over-screen" class="overlay hidden">
+      <h1>Game Over</h1>
+      <p>Your length: <span id="final-score">0</span></p>
+      <button id="restart-btn">Play Again</button>
+      <a class="back-link" href="../../index.html">← Back to Game Center</a>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

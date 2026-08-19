@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2f5a7e"/>
+      <stop offset="1" stop-color="#152838"/>
+    </linearGradient>
+    <radialGradient id="body" cx="38%" cy="34%" r="70%">
+      <stop offset="0" stop-color="#7ef0ab"/>
+      <stop offset="60%" stop-color="#3ddc84"/>
+      <stop offset="100%" stop-color="#1e9a58"/>
+    </radialGradient>
+  </defs>
+
+  <!-- 圆角背景 -->
+  <rect x="0" y="0" width="128" height="128" rx="28" fill="url(#bg)"/>
+
+  <!-- 盘曲的蛇身（尾巴） -->
+  <path d="M40 96 q22 14 40 -2 q16 -14 2 -30"
+        fill="none" stroke="#1e9a58" stroke-width="15"
+        stroke-linecap="round" opacity="0.9"/>
+  <path d="M40 96 q22 14 40 -2 q16 -14 2 -30"
+        fill="none" stroke="#3ddc84" stroke-width="10"
+        stroke-linecap="round"/>
+
+  <!-- 落地阴影 -->
+  <ellipse cx="64" cy="70" rx="34" ry="12" fill="#000" opacity="0.22"/>
+
+  <!-- 蛇头 -->
+  <circle cx="64" cy="52" r="30" fill="url(#body)"/>
+  <!-- 高光 -->
+  <circle cx="53" cy="41" r="8" fill="#ffffff" opacity="0.55"/>
+
+  <!-- 眼睛 -->
+  <circle cx="55" cy="50" r="8" fill="#fff"/>
+  <circle cx="75" cy="50" r="8" fill="#fff"/>
+  <circle cx="57" cy="52" r="4" fill="#111"/>
+  <circle cx="77" cy="52" r="4" fill="#111"/>
+
+  <!-- 吐信 -->
+  <path d="M64 78 l0 10 M64 88 l-4 5 M64 88 l4 5"
+        stroke="#ff5b6e" stroke-width="3" stroke-linecap="round" fill="none"/>
+</svg>
