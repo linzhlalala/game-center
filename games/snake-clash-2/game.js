@@ -47,6 +47,8 @@
   let timeLeft = ROUND_TIME;    // countdown within the stage
   let boss = null;              // the boss snake, once spawned
   let bossSpawned = false;
+  const BOSS_SURVIVE_TIME = 20; // survive this long after boss spawns -> clear
+  let bossSurviveLeft = BOSS_SURVIVE_TIME;
   let phase = "round";          // "round" | "boss" | "cleared" | "dead"
   let bannerTimer = 0;          // for on-screen phase banners
   let bannerText = "";
@@ -168,9 +170,10 @@
   function spawnBoss() {
     bossSpawned = true;
     phase = "boss";
-    // Boss starts just a little above the player's level, so you can out-grow
-    // it during the fight. It does NOT grow much, so it's a beatable target.
-    const targetLevel = levelOf(player) + 2;
+    bossSurviveLeft = BOSS_SURVIVE_TIME;
+    // Boss is only ~15% above the player's level (like the real game), so you
+    // can realistically out-grow it. Keep a sensible minimum size.
+    const targetLevel = Math.max(Math.ceil(levelOf(player) * 1.15), levelOf(player) + 1);
     const bossLen = Math.max(targetLevel * 12, 40);
 
     // Spawn at the arena corner FARTHEST from the player, so it never appears
@@ -191,9 +194,9 @@
 
     banner("⚠ BOSS INCOMING ⚠", 2.4);
     shake = 18;
-    // Follow-up coaching hint so the player knows how to win.
+    // Follow-up coaching hint: two ways to win.
     setTimeout(() => {
-      if (running && phase === "boss") banner("EAT PELLETS TO OUT-GROW IT, THEN RAM ITS HEAD!", 3);
+      if (running && phase === "boss") banner("OUT-GROW & RAM IT, OR SURVIVE 20s!", 3);
     }, 2500);
   }
 
@@ -499,9 +502,14 @@
   }
 
   // ---------- Stage clear -> next stage ----------
-  function stageClear() {
+  // survived==true means the player outlasted the boss timer;
+  // otherwise they defeated the boss by eating it.
+  function stageClear(survived) {
+    if (phase === "cleared") return; // guard against double-trigger
     phase = "cleared";
-    banner(`STAGE ${stage} CLEAR!`, 2.4);
+    // Remove the boss so it stops hunting during the celebration.
+    if (boss) { boss.dead = true; boss = null; }
+    banner(survived ? `SURVIVED! STAGE ${stage} CLEAR!` : `BOSS DOWN! STAGE ${stage} CLEAR!`, 2.4);
     // Advance after a short celebration
     setTimeout(() => {
       if (!running) return;
@@ -746,6 +754,13 @@
         timeLeft = 0;
         if (!bossSpawned) spawnBoss();
       }
+    } else if (phase === "boss") {
+      // Survival win path: outlast the boss for BOSS_SURVIVE_TIME seconds.
+      bossSurviveLeft -= dt;
+      if (bossSurviveLeft <= 0) {
+        bossSurviveLeft = 0;
+        stageClear(true); // survived
+      }
     }
 
     // Banner timer
@@ -795,7 +810,7 @@
       timerEl.textContent = Math.ceil(timeLeft) + "s";
       timerEl.classList.toggle("urgent", timeLeft <= 10);
     } else if (phase === "boss") {
-      timerEl.textContent = "BOSS";
+      timerEl.textContent = "🐍 " + Math.ceil(bossSurviveLeft) + "s";
       timerEl.classList.add("urgent");
     } else {
       timerEl.textContent = "—";
@@ -864,6 +879,7 @@
     timeLeft = ROUND_TIME;
     boss = null;
     bossSpawned = false;
+    bossSurviveLeft = BOSS_SURVIVE_TIME;
     phase = "round";
     banner(advancing ? `STAGE ${stage}` : "GO!", 1.6);
   }
