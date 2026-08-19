@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Snake Clash 2: Rampage</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="game-wrap">
+    <canvas id="game"></canvas>
+
+    <!-- HUD -->
+    <div id="hud">
+      <div class="hud-item">
+        <span class="hud-label">Level</span>
+        <span id="level">1</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">Length</span>
+        <span id="score">1</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">Rank</span>
+        <span id="rank">-</span>
+      </div>
+    </div>
+
+    <!-- Kill / combo feed -->
+    <div id="killfeed"></div>
+
+    <!-- Boost button (touch) -->
+    <div id="boost-btn">BOOST</div>
+
+    <!-- Start screen -->
+    <div id="start-screen" class="overlay">
+      <h1>🔥 RAMPAGE</h1>
+      <p>Grow, hunt, and dominate. Circle smaller snakes and cut them off. Eat anything below your level, run from anything above.</p>
+      <p class="hint">Drag to steer · Hold BOOST to sprint</p>
+      <button id="start-btn">Play</button>
+      <a class="back-link" href="../../index.html">← Back to Game Center</a>
+    </div>
+
+    <!-- Game over screen -->
+    <div id="over-screen" class="overlay hidden">
+      <h1>You Died</h1>
+      <p>Reached Level <span id="final-level">1</span> · Length <span id="final-score">0</span></p>
+      <p class="hint" id="kill-summary"></p>
+      <button id="restart-btn">Play Again</button>
+      <a class="back-link" href="../../index.html">← Back to Game Center</a>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

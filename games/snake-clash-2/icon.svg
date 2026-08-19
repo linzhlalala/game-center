@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a0d0d"/>
+      <stop offset="1" stop-color="#160404"/>
+    </linearGradient>
+    <radialGradient id="body2" cx="38%" cy="32%" r="72%">
+      <stop offset="0" stop-color="#ffd27a"/>
+      <stop offset="45%" stop-color="#ff6b35"/>
+      <stop offset="100%" stop-color="#b31111"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ff8a3d" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#ff8a3d" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- 圆角背景 -->
+  <rect x="0" y="0" width="128" height="128" rx="28" fill="url(#bg2)"/>
+
+  <!-- 背后火焰光晕 -->
+  <circle cx="64" cy="54" r="46" fill="url(#glow2)"/>
+
+  <!-- 火焰般的身体拖尾 -->
+  <path d="M34 100 q26 16 46 -2 q18 -16 4 -34"
+        fill="none" stroke="#8a0f0f" stroke-width="16" stroke-linecap="round"/>
+  <path d="M34 100 q26 16 46 -2 q18 -16 4 -34"
+        fill="none" stroke="#ff5a1f" stroke-width="9" stroke-linecap="round"/>
+
+  <!-- 落地阴影 -->
+  <ellipse cx="64" cy="72" rx="36" ry="12" fill="#000" opacity="0.3"/>
+
+  <!-- 蛇头 -->
+  <circle cx="64" cy="52" r="32" fill="url(#body2)"/>
+  <!-- 高光 -->
+  <circle cx="52" cy="40" r="8" fill="#fff" opacity="0.5"/>
+
+  <!-- 怒眉 -->
+  <path d="M44 40 L60 47" stroke="#5a0a0a" stroke-width="6" stroke-linecap="round"/>
+  <path d="M84 40 L68 47" stroke="#5a0a0a" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- 凶狠竖瞳眼 -->
+  <circle cx="54" cy="52" r="9" fill="#fff"/>
+  <circle cx="74" cy="52" r="9" fill="#fff"/>
+  <ellipse cx="55" cy="53" rx="3" ry="7" fill="#111"/>
+  <ellipse cx="75" cy="53" rx="3" ry="7" fill="#111"/>
+
+  <!-- 尖牙 -->
+  <path d="M56 68 L60 78 L64 68 Z" fill="#fff"/>
+  <path d="M64 68 L68 78 L72 68 Z" fill="#fff"/>
+
+  <!-- 分叉吐信 -->
+  <path d="M64 78 l0 9 M64 87 l-5 6 M64 87 l5 6"
+        stroke="#ff2a2a" stroke-width="3" stroke-linecap="round" fill="none"/>
+</svg>
