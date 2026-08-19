@@ -67,6 +67,49 @@ html, body {
   color: #ffb03a;
 }
 
+#stage {
+  color: #4dabf7;
+}
+
+#timer.urgent {
+  color: #ff4d4d;
+  animation: pulse 0.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+}
+
+/* Big center banner */
+#banner {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(30px, 8vw, 64px);
+  font-weight: 900;
+  color: #fff;
+  text-align: center;
+  text-shadow: 0 0 24px #ff5a1f, 0 4px 12px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+  z-index: 7;
+  opacity: 0;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+}
+
+#banner.show {
+  opacity: 1;
+  animation: bannerpop 0.4s ease-out;
+}
+
+@keyframes bannerpop {
+  0% { transform: translate(-50%, -50%) scale(0.5); }
+  60% { transform: translate(-50%, -50%) scale(1.1); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+
 /* Kill feed */
 #killfeed {
   position: absolute;

@@ -38,9 +38,18 @@
   let boosting = false;
   let boostCooldown = 0;
   let lastTime = 0;
-  let elapsed = 0;      // seconds survived -> difficulty
+  let elapsed = 0;      // seconds survived within the current stage
   let killCount = 0;
-  let isTouch = false;
+
+  // ---------- Round / Boss / Stage state ----------
+  const ROUND_TIME = 60;        // seconds before the boss appears
+  let stage = 1;                // current stage number
+  let timeLeft = ROUND_TIME;    // countdown within the stage
+  let boss = null;              // the boss snake, once spawned
+  let bossSpawned = false;
+  let phase = "round";          // "round" | "boss" | "cleared" | "dead"
+  let bannerTimer = 0;          // for on-screen phase banners
+  let bannerText = "";
 
   // ---------- Helpers ----------
   const rand = (a, b) => a + Math.random() * (b - a);
@@ -117,31 +126,68 @@
   const SEG_SPACING = 6;
 
   function difficulty() {
-    // ramps 0 -> 1 over ~2.5 minutes
-    return clamp(elapsed / 150, 0, 1);
+    // Rises within a round (0->1 over the round) and stacks with stage.
+    const inRound = clamp(elapsed / ROUND_TIME, 0, 1);
+    const stageBoost = clamp((stage - 1) * 0.25, 0, 1);
+    return clamp(inRound * 0.6 + stageBoost, 0, 1);
+  }
+
+  // Typical AI starting length grows with the stage, so higher stages
+  // are populated with bigger, tougher snakes.
+  function aiStartLength() {
+    const base = 6 + (stage - 1) * 8;
+    return rand(base * 0.6, base + 8 + difficulty() * 24);
   }
 
   function initSnakes() {
     snakes = [];
-    player = makeSnake(true, "#ff6b35");
+    const playerColor = (window.PlayerProfile && PlayerProfile.getColor()) || "#ff6b35";
+    player = makeSnake(true, playerColor);
     snakes.push(player);
-    const n = BASE_AI_COUNT;
-    for (let i = 0; i < n; i++) snakes.push(makeSnake(false));
+    const n = BASE_AI_COUNT + Math.floor((stage - 1) * 1.5);
+    for (let i = 0; i < n; i++) {
+      snakes.push(makeSnake(false, null, aiStartLength()));
+    }
   }
 
   function maybeSpawnAI() {
-    // keep the arena populated; more as difficulty rises
+    if (phase !== "round") return; // stop refilling once the boss is here
     const desired = BASE_AI_COUNT + Math.floor(difficulty() * 8);
-    const alive = snakes.filter((s) => !s.dead).length;
+    const alive = snakes.filter((s) => !s.dead && s !== boss).length;
     if (alive < desired && Math.random() < 0.02) {
-      // spawn away from player
       let s;
       for (let tries = 0; tries < 6; tries++) {
-        s = makeSnake(false, null, rand(6, 10 + difficulty() * 30));
+        s = makeSnake(false, null, aiStartLength());
         if (dist2(s.x, s.y, player.x, player.y) > 700 * 700) break;
       }
       snakes.push(s);
     }
+  }
+
+  // ---------- Boss ----------
+  function spawnBoss() {
+    bossSpawned = true;
+    phase = "boss";
+    // Boss is ~15% above the player's current level, min a solid size.
+    const targetLevel = Math.max(levelOf(player) + 3, Math.ceil(levelOf(player) * 1.15));
+    const bossLen = Math.max(targetLevel * 12, 60);
+
+    // spawn at arena edge, away from player
+    let bx, by;
+    for (let tries = 0; tries < 10; tries++) {
+      bx = rand(WORLD.w * 0.1, WORLD.w * 0.9);
+      by = rand(WORLD.h * 0.1, WORLD.h * 0.9);
+      if (dist2(bx, by, player.x, player.y) > 900 * 900) break;
+    }
+    boss = makeSnake(false, "#c1121f", bossLen);
+    boss.x = bx; boss.y = by;
+    boss.isBoss = true;
+    boss.baseSpeed = 200;
+    boss.speed = 200;
+    snakes.push(boss);
+
+    banner("⚠ BOSS INCOMING ⚠", 2.2);
+    shake = 18;
   }
 
   // ---------- Input ----------
@@ -182,7 +228,7 @@
       const t = e.touches[0];
       if (t) setPointer(t.clientX, t.clientY);
     };
-    canvas.addEventListener("touchstart", (e) => { isTouch = true; markTouch(); onTouch(e); }, { passive: false });
+    canvas.addEventListener("touchstart", (e) => { markTouch(); onTouch(e); }, { passive: false });
     canvas.addEventListener("touchmove", onTouch, { passive: false });
 
     // Boost button (touch)
@@ -362,13 +408,23 @@
       foods.splice(0, foods.length - (FOOD_COUNT + 260));
     }
 
-    // visual burst
-    spawnParticles(s.x, s.y, s.color, 26, 240);
+    // visual burst (bigger for the boss)
+    spawnParticles(s.x, s.y, s.color, s.isBoss ? 60 : 26, s.isBoss ? 380 : 240);
 
     if (s.isPlayer) {
       shake = 22;
-      endGame();
+      endGame(false);
       return;
+    }
+
+    // Boss defeated by the player -> stage clear!
+    if (s.isBoss) {
+      boss = null;
+      if (by && by.isPlayer) {
+        shake = 26;
+        stageClear();
+        return;
+      }
     }
 
     // player got a kill
@@ -420,6 +476,24 @@
     el.textContent = KILL_WORDS[(Math.random() * KILL_WORDS.length) | 0] + combo;
     feed.appendChild(el);
     setTimeout(() => el.remove(), 1000);
+  }
+
+  // ---------- Banner (big centered phase message) ----------
+  function banner(text, seconds) {
+    bannerText = text;
+    bannerTimer = seconds;
+  }
+
+  // ---------- Stage clear -> next stage ----------
+  function stageClear() {
+    phase = "cleared";
+    banner(`STAGE ${stage} CLEAR!`, 2.4);
+    // Advance after a short celebration
+    setTimeout(() => {
+      if (!running) return;
+      stage += 1;
+      startStage(true);
+    }, 2400);
   }
 
   // ---------- Rank ----------
@@ -546,7 +620,8 @@
   function drawSnake(s) {
     const r = snakeRadius(s) * camera.zoom;
     const boostingNow = (s.isPlayer && boosting && boostCooldown <= 0 && s.length > 12) || (!s.isPlayer && s.aiBoost);
-    const glow = boostingNow ? 18 : (s.isPlayer ? 6 : 0);
+    let glow = boostingNow ? 18 : (s.isPlayer ? 6 : 0);
+    if (s.isBoss) glow = Math.max(glow, 24);
 
     for (let i = s.segments.length - 1; i >= 0; i--) {
       const seg = s.segments[i];
@@ -557,9 +632,32 @@
       drawBall(p.x, p.y, isHead ? r * 1.18 : r, s.color, true, isHead ? glow : glow * 0.5);
       if (isHead) {
         drawEyes(p.x, p.y, r * 1.18, s.angle);
+        if (s.isBoss) drawCrown(p.x, p.y, r * 1.18);
         drawLevelBadge(p.x, p.y, r * 1.18, levelOf(s), s.isPlayer);
       }
     }
+  }
+
+  // Golden crown above the boss head
+  function drawCrown(sx, sy, r) {
+    const w = r * 1.4, h = r * 0.8;
+    const y = sy - r - r * 0.9;
+    ctx.save();
+    ctx.fillStyle = "#ffd23f";
+    ctx.strokeStyle = "rgba(0,0,0,0.5)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(sx - w / 2, y + h);
+    ctx.lineTo(sx - w / 2, y + h * 0.3);
+    ctx.lineTo(sx - w / 4, y + h * 0.7);
+    ctx.lineTo(sx, y);
+    ctx.lineTo(sx + w / 4, y + h * 0.7);
+    ctx.lineTo(sx + w / 2, y + h * 0.3);
+    ctx.lineTo(sx + w / 2, y + h);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
   }
 
   function drawEyes(sx, sy, r, angle) {
@@ -627,6 +725,25 @@
     elapsed += dt;
     updatePointerAngle();
 
+    // ----- Round countdown -> spawn boss -----
+    if (phase === "round") {
+      timeLeft -= dt;
+      if (timeLeft <= 0) {
+        timeLeft = 0;
+        if (!bossSpawned) spawnBoss();
+      }
+    }
+
+    // Banner timer
+    if (bannerTimer > 0) bannerTimer -= dt;
+    const bannerEl = document.getElementById("banner");
+    if (bannerTimer > 0) {
+      if (bannerEl.textContent !== bannerText) bannerEl.textContent = bannerText;
+      bannerEl.classList.add("show");
+    } else {
+      bannerEl.classList.remove("show");
+    }
+
     // player boost
     handlePlayerBoost(dt);
 
@@ -658,6 +775,18 @@
     document.getElementById("score").textContent = Math.floor(player.length);
     const { rank, total } = computeRank();
     document.getElementById("rank").textContent = `${rank}/${total}`;
+    document.getElementById("stage").textContent = stage;
+    const timerEl = document.getElementById("timer");
+    if (phase === "round") {
+      timerEl.textContent = Math.ceil(timeLeft) + "s";
+      timerEl.classList.toggle("urgent", timeLeft <= 10);
+    } else if (phase === "boss") {
+      timerEl.textContent = "BOSS";
+      timerEl.classList.add("urgent");
+    } else {
+      timerEl.textContent = "—";
+      timerEl.classList.remove("urgent");
+    }
   }
 
   function handlePlayerBoost(dt) {
@@ -703,7 +832,10 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  function startGame() {
+  // (Re)start a stage. If advancing==true we keep the game running and just
+  // rebuild the arena for the next stage (player resets to a small snake, but
+  // the arena and its snakes are bigger).
+  function startStage(advancing) {
     spawnFoods();
     initSnakes();
     particles = [];
@@ -714,7 +846,18 @@
     elapsed = 0;
     killCount = 0;
     shake = 0;
+    // round/boss state
+    timeLeft = ROUND_TIME;
+    boss = null;
+    bossSpawned = false;
+    phase = "round";
+    banner(advancing ? `STAGE ${stage}` : "GO!", 1.6);
+  }
+
+  function startGame() {
+    stage = 1;
     running = true;
+    startStage(false);
     lastTime = performance.now();
     document.body.classList.add("playing");
     document.getElementById("start-screen").classList.add("hidden");
@@ -724,11 +867,13 @@
 
   function endGame() {
     running = false;
+    phase = "dead";
     document.body.classList.remove("playing");
-    document.getElementById("final-level").textContent = levelOf(player);
+    document.getElementById("banner").classList.remove("show");
+    document.getElementById("final-level").textContent = "Stage " + stage;
     document.getElementById("final-score").textContent = Math.floor(player.length);
     document.getElementById("kill-summary").textContent =
-      killCount > 0 ? `You ate ${killCount} snake${killCount > 1 ? "s" : ""}!` : "Hunt some snakes next time!";
+      killCount > 0 ? `You ate ${killCount} snake${killCount > 1 ? "s" : ""} this stage!` : "Hunt some snakes next time!";
     document.getElementById("over-screen").classList.remove("hidden");
   }
 
@@ -739,7 +884,6 @@
 
   // Detect touch-capable device up front so the boost button is ready at start
   if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) {
-    isTouch = true;
     markTouch();
   }
 

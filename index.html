@@ -13,6 +13,22 @@
     <p>Just play. No ads.</p>
   </header>
 
+  <!-- Player profile: name + color, saved in a cookie -->
+  <section id="profile" class="profile">
+    <div class="profile-row">
+      <label for="player-name">Your name</label>
+      <input id="player-name" type="text" maxlength="16" placeholder="Player" autocomplete="off" />
+    </div>
+    <div class="profile-row">
+      <span class="profile-label">Your color</span>
+      <div id="swatches" class="swatches"></div>
+    </div>
+    <div class="profile-preview">
+      <span id="preview-dot" class="preview-dot"></span>
+      <span id="preview-text">Player</span>
+    </div>
+  </section>
+
   <main>
     <!-- Game card list: to add a game later, just copy an <a class="card"> block -->
     <div id="game-grid" class="grid">
@@ -54,5 +70,8 @@
   <footer class="site-footer">
     <p>Homemade mini games · No ads · Free</p>
   </footer>
+
+  <script src="player.js"></script>
+  <script src="home.js"></script>
 </body>
 </html>

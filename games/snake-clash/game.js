@@ -96,7 +96,8 @@
 
   function initSnakes() {
     snakes = [];
-    player = makeSnake(true, "#3ddc84");
+    const playerColor = (window.PlayerProfile && PlayerProfile.getColor()) || "#3ddc84";
+    player = makeSnake(true, playerColor);
     snakes.push(player);
     for (let i = 0; i < AI_COUNT; i++) {
       snakes.push(makeSnake(false));
