@@ -169,20 +169,33 @@
 
   // ---- Render ----
   function draw() {
-    // sky
-    ctx.fillStyle = "#5a3d22";
-    ctx.fillRect(0, 0, viewW, viewH);
-    // dirt
     const dirtTop = viewH * 0.3;
+    // sky above ground: warm sunset gradient
+    const sky = ctx.createLinearGradient(0, 0, 0, dirtTop);
+    sky.addColorStop(0, "#ffb26b");
+    sky.addColorStop(1, "#e07a3c");
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, viewW, dirtTop);
+    // a soft sun
+    ctx.save();
+    ctx.fillStyle = "rgba(255,240,200,0.8)";
+    ctx.beginPath(); ctx.arc(viewW * 0.82, dirtTop * 0.45, 34, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    // dirt with layered strata
     const g = ctx.createLinearGradient(0, dirtTop, 0, viewH);
-    g.addColorStop(0, "#6b4a2b");
-    g.addColorStop(1, "#3a2716");
+    g.addColorStop(0, "#7a5636");
+    g.addColorStop(0.5, "#5c3e24");
+    g.addColorStop(1, "#38240f");
     ctx.fillStyle = g;
     ctx.fillRect(0, dirtTop, viewW, viewH - dirtTop);
-    // ground line
-    ctx.strokeStyle = "rgba(0,0,0,0.25)";
-    ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(0, dirtTop); ctx.lineTo(viewW, dirtTop); ctx.stroke();
+    drawStrata(dirtTop);
+
+    // grass strip on the ground line
+    ctx.fillStyle = "#4caf50";
+    ctx.fillRect(0, dirtTop - 6, viewW, 8);
+    ctx.fillStyle = "#3d8b40";
+    ctx.fillRect(0, dirtTop + 1, viewW, 3);
 
     drawMiner();
     drawItems();
@@ -190,19 +203,54 @@
     drawParticles();
   }
 
-  function drawMiner() {
-    // simple miner at top center, hat tinted with accent color
-    const x = claw.baseX, y = claw.baseY - 34;
+  // Faint horizontal rock strata + speckles for texture
+  function drawStrata(dirtTop) {
     ctx.save();
-    // body
-    ctx.fillStyle = "#c98a4b";
-    ctx.beginPath(); ctx.arc(x, y, 16, 0, Math.PI * 2); ctx.fill();
-    // hat
+    ctx.strokeStyle = "rgba(0,0,0,0.12)";
+    ctx.lineWidth = 2;
+    for (let y = dirtTop + 60; y < viewH; y += 70) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      for (let x = 0; x <= viewW; x += 40) {
+        ctx.lineTo(x, y + Math.sin((x + y) * 0.02) * 6);
+      }
+      ctx.stroke();
+    }
+    // speckles
+    ctx.fillStyle = "rgba(0,0,0,0.10)";
+    for (let i = 0; i < 60; i++) {
+      const x = ((i * 137) % viewW);
+      const y = dirtTop + 30 + ((i * 89) % (viewH - dirtTop - 30));
+      ctx.beginPath(); ctx.arc(x, y, 2.2, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawMiner() {
+    const x = claw.baseX, y = claw.baseY - 40;
+    ctx.save();
+    // arms/winch post
+    ctx.fillStyle = "#4a3524";
+    ctx.fillRect(x - 26, y + 18, 52, 12);
+    // body (overalls in accent color)
     ctx.fillStyle = ACCENT;
     ctx.beginPath();
-    ctx.ellipse(x, y - 10, 20, 7, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath();
-    ctx.arc(x, y - 12, 12, Math.PI, 0); ctx.fill();
+    ctx.moveTo(x - 15, y + 24); ctx.lineTo(x + 15, y + 24);
+    ctx.lineTo(x + 11, y + 4); ctx.lineTo(x - 11, y + 4); ctx.closePath();
+    ctx.fill();
+    // head
+    ctx.fillStyle = "#e8b483";
+    ctx.beginPath(); ctx.arc(x, y - 4, 13, 0, Math.PI * 2); ctx.fill();
+    // mustache
+    ctx.fillStyle = "#5a3a1a";
+    ctx.beginPath(); ctx.ellipse(x, y, 8, 3, 0, 0, Math.PI * 2); ctx.fill();
+    // helmet
+    ctx.fillStyle = "#ffcf33";
+    ctx.beginPath(); ctx.arc(x, y - 8, 13, Math.PI, 0); ctx.fill();
+    ctx.fillRect(x - 15, y - 9, 30, 4);
+    // helmet lamp
+    ctx.fillStyle = "#fff7cc";
+    ctx.beginPath(); ctx.arc(x, y - 18, 4, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
 
@@ -238,25 +286,76 @@
   function drawShiny(x, y, r, color, gem) {
     ctx.save();
     // shadow
-    ctx.fillStyle = "rgba(0,0,0,0.25)";
-    ctx.beginPath(); ctx.ellipse(x, y + r * 0.6, r, r * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "rgba(0,0,0,0.28)";
+    ctx.beginPath(); ctx.ellipse(x, y + r * 0.62, r * 0.95, r * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+
     if (gem) {
+      // faceted diamond
+      ctx.save();
+      ctx.shadowColor = color; ctx.shadowBlur = 12;
+      // top table
+      ctx.fillStyle = lighten(color, 0.35);
+      ctx.beginPath();
+      ctx.moveTo(x - r * 0.6, y - r * 0.45); ctx.lineTo(x + r * 0.6, y - r * 0.45);
+      ctx.lineTo(x + r, y - r * 0.05); ctx.lineTo(x - r, y - r * 0.05); ctx.closePath();
+      ctx.fill();
+      // left facet
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y);
-      ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = "rgba(255,255,255,0.7)"; ctx.lineWidth = 2; ctx.stroke();
+      ctx.moveTo(x - r, y - r * 0.05); ctx.lineTo(x, y + r); ctx.lineTo(x - r * 0.1, y - r * 0.05); ctx.closePath();
+      ctx.fill();
+      // right facet
+      ctx.fillStyle = shade(color, -0.2);
+      ctx.beginPath();
+      ctx.moveTo(x + r, y - r * 0.05); ctx.lineTo(x, y + r); ctx.lineTo(x + r * 0.1, y - r * 0.05); ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,0.8)"; ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x - r * 0.6, y - r * 0.45); ctx.lineTo(x + r * 0.6, y - r * 0.45);
+      ctx.lineTo(x + r, y - r * 0.05); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y - r * 0.05); ctx.closePath();
+      ctx.stroke();
+      ctx.restore();
     } else {
+      // gold/rock nugget with lumpy edge
       const gr = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r);
       gr.addColorStop(0, "#ffffff");
       gr.addColorStop(0.4, color);
-      gr.addColorStop(1, shade(color, -0.35));
+      gr.addColorStop(1, shade(color, -0.38));
       ctx.fillStyle = gr;
-      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath();
+      const bumps = 9;
+      for (let i = 0; i <= bumps; i++) {
+        const a = (i / bumps) * Math.PI * 2;
+        const rr = r * (0.86 + 0.14 * Math.sin(i * 2.3));
+        const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr * 0.92;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.closePath(); ctx.fill();
+      // sparkle for gold
+      if (color[1] === "f" || color.indexOf("ffd") >= 0 || color.indexOf("ffc") >= 0 || color.indexOf("f5b") >= 0) {
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        star(x + r * 0.3, y - r * 0.2, r * 0.28);
+      }
     }
     ctx.fillStyle = "rgba(255,255,255,0.5)";
     ctx.beginPath(); ctx.arc(x - r * 0.35, y - r * 0.4, r * 0.2, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
+  }
+
+  function star(x, y, r) {
+    ctx.beginPath();
+    ctx.moveTo(x, y - r); ctx.lineTo(x + r * 0.25, y - r * 0.25);
+    ctx.lineTo(x + r, y); ctx.lineTo(x + r * 0.25, y + r * 0.25);
+    ctx.lineTo(x, y + r); ctx.lineTo(x - r * 0.25, y + r * 0.25);
+    ctx.lineTo(x - r, y); ctx.lineTo(x - r * 0.25, y - r * 0.25);
+    ctx.closePath(); ctx.fill();
+  }
+
+  function lighten(hex, amt) {
+    const h = hex.replace("#", "");
+    const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+    const f = (v) => clamp(v + 255 * amt, 0, 255) | 0;
+    return `rgb(${f(r)},${f(g)},${f(b)})`;
   }
 
   function drawParticles() {

@@ -663,8 +663,43 @@
     for (const f of foods) {
       const s = worldToScreen(f.x, f.y);
       if (s.x < -40 || s.x > viewW + 40 || s.y < -40 || s.y > viewH + 40) continue;
-      drawBall(s.x, s.y, f.r, f.color, true, 6);
+      drawFruit(s.x, s.y, f.r, f.color);
     }
+  }
+
+  // A little fruit/orb: glossy body, leaf, shine.
+  function drawFruit(sx, sy, r, color) {
+    ctx.save();
+    // shadow
+    ctx.fillStyle = "rgba(0,0,0,0.22)";
+    ctx.beginPath();
+    ctx.ellipse(sx, sy + r * 0.55 * ISO_TILT, r * 0.9, r * ISO_TILT * 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // glow
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 8;
+    const g = ctx.createRadialGradient(sx - r * 0.35, sy - r * 0.4, r * 0.1, sx, sy, r);
+    g.addColorStop(0, lighten(color, 0.6));
+    g.addColorStop(0.55, color);
+    g.addColorStop(1, darken(color, 0.35));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(sx, sy, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // tiny leaf on bigger fruit
+    if (r > 8) {
+      ctx.fillStyle = "#4caf50";
+      ctx.beginPath();
+      ctx.ellipse(sx + r * 0.2, sy - r * 0.9, r * 0.35, r * 0.18, -0.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // shine
+    ctx.fillStyle = "rgba(255,255,255,0.65)";
+    ctx.beginPath();
+    ctx.arc(sx - r * 0.35, sy - r * 0.4, r * 0.24, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
   function drawSnakes() {
@@ -672,25 +707,117 @@
     for (const s of order) drawSnake(s);
   }
 
+  // Smooth connected tube body with scale texture, drawn tail -> head.
   function drawSnake(s) {
     const r = snakeRadius(s) * camera.zoom;
     const boostingNow = (s.isPlayer && boosting && boostCooldown <= 0 && s.length > 12) || (!s.isPlayer && s.aiBoost);
     let glow = boostingNow ? 18 : (s.isPlayer ? 6 : 0);
     if (s.isBoss) glow = Math.max(glow, 24);
 
+    // Build screen-space points for the body path (skip offscreen fully).
+    const pts = [];
     for (let i = s.segments.length - 1; i >= 0; i--) {
       const seg = s.segments[i];
       if (!seg) continue;
-      const p = worldToScreen(seg.x, seg.y);
-      if (p.x < -60 || p.x > viewW + 60 || p.y < -60 || p.y > viewH + 60) continue;
-      const isHead = i === 0;
-      drawBall(p.x, p.y, isHead ? r * 1.18 : r, s.color, true, isHead ? glow : glow * 0.5);
-      if (isHead) {
-        drawEyes(p.x, p.y, r * 1.18, s.angle);
-        if (s.isBoss) drawCrown(p.x, p.y, r * 1.18);
-        drawLevelBadge(p.x, p.y, r * 1.18, levelOf(s), s.isPlayer);
-      }
+      pts.push(worldToScreen(seg.x, seg.y));
     }
+    if (pts.length < 2) {
+      if (pts.length === 1) drawBall(pts[0].x, pts[0].y, r, s.color, true, glow);
+      return;
+    }
+
+    // invulnerable player flashes
+    const flashing = s.isPlayer && s.invuln > 0 && (Math.floor(s.invuln * 12) % 2 === 0);
+    ctx.save();
+    if (flashing) ctx.globalAlpha = 0.4;
+
+    // Drop shadow of the whole body
+    ctx.save();
+    ctx.strokeStyle = "rgba(0,0,0,0.22)";
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = r * 2;
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y + r * 0.5 * ISO_TILT);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y + r * 0.5 * ISO_TILT);
+    ctx.stroke();
+    ctx.restore();
+
+    // Glow underlay
+    if (glow > 0) {
+      ctx.save();
+      ctx.shadowColor = s.color;
+      ctx.shadowBlur = glow;
+      ctx.strokeStyle = s.color;
+      ctx.lineCap = "round"; ctx.lineJoin = "round";
+      ctx.lineWidth = r * 2;
+      strokePath(pts);
+      ctx.restore();
+    }
+
+    // Body base
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.strokeStyle = darken(s.color, 0.2);
+    ctx.lineWidth = r * 2;
+    strokePath(pts);
+    // Body fill (slightly narrower, brighter)
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = r * 1.7;
+    strokePath(pts);
+    // Top highlight stripe -> rounded tube look
+    ctx.strokeStyle = lighten(s.color, 0.35);
+    ctx.lineWidth = r * 0.7;
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y - r * 0.35);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y - r * 0.35);
+    ctx.stroke();
+
+    // Scale dots along the body
+    ctx.fillStyle = darken(s.color, 0.28);
+    for (let i = 0; i < pts.length; i += 2) {
+      ctx.beginPath();
+      ctx.arc(pts[i].x, pts[i].y + r * 0.15, r * 0.16, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Head is the last point in pts (since we pushed tail->head)
+    const head = pts[pts.length - 1];
+    const hr = r * 1.2;
+    drawBall(head.x, head.y, hr, s.color, true, glow);
+    drawEyes(head.x, head.y, hr, s.angle);
+    drawTongue(head.x, head.y, hr, s.angle);
+    if (s.isBoss) drawCrown(head.x, head.y, hr);
+    drawLevelBadge(head.x, head.y, hr, levelOf(s), s.isPlayer);
+
+    ctx.restore();
+  }
+
+  function strokePath(pts) {
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.stroke();
+  }
+
+  // Forked tongue flicking out of the head
+  function drawTongue(sx, sy, r, angle) {
+    const ex = Math.cos(angle), ey = Math.sin(angle) * ISO_TILT;
+    const bx = sx + ex * r, by = sy + ey * r;
+    const tx = bx + ex * r * 0.7, ty = by + ey * r * 0.7;
+    ctx.save();
+    ctx.strokeStyle = "#ff3b5c";
+    ctx.lineWidth = Math.max(1.5, r * 0.14);
+    ctx.lineCap = "round";
+    const px = -ey, py = ex;
+    ctx.beginPath();
+    ctx.moveTo(bx, by);
+    ctx.lineTo(tx, ty);
+    ctx.moveTo(tx, ty);
+    ctx.lineTo(tx + px * r * 0.25 + ex * r * 0.15, ty + py * r * 0.25 + ey * r * 0.15);
+    ctx.moveTo(tx, ty);
+    ctx.lineTo(tx - px * r * 0.25 + ex * r * 0.15, ty - py * r * 0.25 + ey * r * 0.15);
+    ctx.stroke();
+    ctx.restore();
   }
 
   // Golden crown above the boss head

@@ -85,6 +85,7 @@
 
   // ---- Update ----
   function update(dt) {
+    ambientTime += dt;
     timeLeft -= dt;
     if (timeLeft <= 0) { timeLeft = 0; endGame(); return; }
 
@@ -156,18 +157,85 @@
   }
 
   // ---- Render ----
+  let ambientTime = 0;
+
   function draw() {
     // water gradient
     const g = ctx.createLinearGradient(0, 0, 0, viewH);
-    g.addColorStop(0, "#1f8bd6");
+    g.addColorStop(0, "#3fb0e8");
+    g.addColorStop(0.5, "#1f7fc0");
     g.addColorStop(1, "#062138");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, viewW, viewH);
 
+    drawLightRays();
+    drawSeabed();
+    drawAmbientBubbles();
     drawFish();
     drawBullets();
     drawParticles();
     drawCannon();
+  }
+
+  // Sun rays from the surface
+  function drawLightRays() {
+    ctx.save();
+    ctx.globalAlpha = 0.10;
+    ctx.fillStyle = "#ffffff";
+    const n = 5;
+    for (let i = 0; i < n; i++) {
+      const x = (viewW / n) * i + (i * 37 % 60);
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x + 60, 0);
+      ctx.lineTo(x + 160, viewH);
+      ctx.lineTo(x + 40, viewH);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // Sandy seabed with seaweed near the bottom
+  function drawSeabed() {
+    const top = viewH - 70;
+    ctx.save();
+    // seaweed sway
+    ctx.strokeStyle = "rgba(60,180,120,0.55)";
+    ctx.lineWidth = 6;
+    ctx.lineCap = "round";
+    for (let i = 0; i < 8; i++) {
+      const x = (viewW / 8) * i + 30;
+      const sway = Math.sin(ambientTime * 1.5 + i) * 14;
+      ctx.beginPath();
+      ctx.moveTo(x, viewH);
+      ctx.quadraticCurveTo(x + sway, viewH - 40, x + sway * 1.6, top - 20);
+      ctx.stroke();
+    }
+    // sand
+    ctx.fillStyle = "#c9a86a";
+    ctx.beginPath();
+    ctx.moveTo(0, viewH);
+    ctx.lineTo(0, top + 10);
+    for (let x = 0; x <= viewW; x += 40) {
+      ctx.lineTo(x, top + 10 + Math.sin(x * 0.03) * 8);
+    }
+    ctx.lineTo(viewW, viewH);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawAmbientBubbles() {
+    ctx.save();
+    ctx.fillStyle = "rgba(255,255,255,0.18)";
+    for (let i = 0; i < 14; i++) {
+      const x = (i * 97) % viewW;
+      const y = viewH - ((ambientTime * 30 + i * 60) % viewH);
+      const r = 3 + (i % 3);
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
   }
 
   function drawFish() {
@@ -178,10 +246,19 @@
       // shadow
       ctx.fillStyle = "rgba(0,0,0,0.2)";
       ctx.beginPath(); ctx.ellipse(0, f.r * 0.7, f.r, f.r * 0.35, 0, 0, Math.PI * 2); ctx.fill();
-      // tail
+      // tail (with a gentle flap)
+      const flap = Math.sin(f.wobble * 2) * f.r * 0.15;
       ctx.fillStyle = shade(f.color, -0.15);
       ctx.beginPath();
-      ctx.moveTo(f.r * 0.7, 0); ctx.lineTo(f.r * 1.4, -f.r * 0.5); ctx.lineTo(f.r * 1.4, f.r * 0.5);
+      ctx.moveTo(f.r * 0.7, 0);
+      ctx.lineTo(f.r * 1.4, -f.r * 0.5 + flap);
+      ctx.lineTo(f.r * 1.4, f.r * 0.5 + flap);
+      ctx.closePath(); ctx.fill();
+      // dorsal fin
+      ctx.fillStyle = shade(f.color, -0.05);
+      ctx.beginPath();
+      ctx.moveTo(-f.r * 0.1, -f.r * 0.6);
+      ctx.quadraticCurveTo(f.r * 0.2, -f.r * 1.05, f.r * 0.45, -f.r * 0.5);
       ctx.closePath(); ctx.fill();
       // body
       const gr = ctx.createRadialGradient(-f.r * 0.3, -f.r * 0.3, f.r * 0.2, 0, 0, f.r);
