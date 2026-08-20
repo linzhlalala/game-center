@@ -67,7 +67,10 @@
       y,
       vx: speed,
       wobble: rand(0, Math.PI * 2),
-      // Art faces LEFT by default, so flip when swimming rightward.
+      // Art faces LEFT by default (head/eye at -x, tail at +x). scale(dir,1)
+      // maps localX -> dir*localX. Moving right (+vx, fromLeft) needs the head
+      // rendered on the right, i.e. dir=-1. Moving left needs dir=1.
+      // (Verified by geometry simulation.)
       dir: fromLeft ? -1 : 1,
     });
   }
