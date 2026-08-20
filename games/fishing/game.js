@@ -29,22 +29,35 @@
   const rand = (a, b) => a + Math.random() * (b - a);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-  // Fish types: hp (hits to catch), value (score), r (size), speed
+  // Fish types. shape controls how the body is drawn:
+  //   "normal" | "long" | "puffer" | "jelly" | "star" | "shark"
+  // hp (hits to catch), value (score), r (size), speedMul, weight (spawn odds)
   const FISH_TYPES = [
-    { kind: "small",  hp: 1, value: 10,  r: 16, color: "#ffd23f", speedMul: 1.5 },
-    { kind: "medium", hp: 3, value: 40,  r: 26, color: "#ff922b", speedMul: 1.1 },
-    { kind: "big",    hp: 6, value: 120, r: 40, color: "#e64980", speedMul: 0.75 },
-    { kind: "boss",   hp: 14, value: 400, r: 58, color: "#9775fa", speedMul: 0.5 },
+    { kind: "minnow",   shape: "normal", hp: 1,  value: 10,  r: 15, color: "#ffd23f", speedMul: 1.6, weight: 26 },
+    { kind: "clown",    shape: "normal", hp: 2,  value: 25,  r: 20, color: "#ff922b", speedMul: 1.3, weight: 20 },
+    { kind: "eel",      shape: "long",   hp: 3,  value: 45,  r: 18, color: "#94d82d", speedMul: 1.2, weight: 12 },
+    { kind: "angel",    shape: "normal", hp: 3,  value: 55,  r: 26, color: "#4dabf7", speedMul: 1.0, weight: 12 },
+    { kind: "puffer",   shape: "puffer", hp: 4,  value: 80,  r: 24, color: "#f783ac", speedMul: 0.8, weight: 9 },
+    { kind: "jelly",    shape: "jelly",  hp: 3,  value: 70,  r: 22, color: "#b197fc", speedMul: 0.7, weight: 8 },
+    { kind: "starfish", shape: "star",   hp: 5,  value: 120, r: 24, color: "#ff6b6b", speedMul: 0.6, weight: 5 },
+    { kind: "grouper",  shape: "normal", hp: 7,  value: 160, r: 40, color: "#e64980", speedMul: 0.7, weight: 5 },
+    { kind: "shark",    shape: "shark",  hp: 12, value: 350, r: 52, color: "#748ffc", speedMul: 0.55, weight: 2 },
+    { kind: "whale",    shape: "normal", hp: 18, value: 600, r: 66, color: "#3bc9db", speedMul: 0.4, weight: 1 },
   ];
 
-  function spawnFish() {
-    const roll = Math.random();
-    let t;
-    if (roll < 0.5) t = FISH_TYPES[0];
-    else if (roll < 0.8) t = FISH_TYPES[1];
-    else if (roll < 0.96) t = FISH_TYPES[2];
-    else t = FISH_TYPES[3];
+  const TOTAL_WEIGHT = FISH_TYPES.reduce((a, t) => a + t.weight, 0);
 
+  function pickType() {
+    let r = Math.random() * TOTAL_WEIGHT;
+    for (const t of FISH_TYPES) {
+      r -= t.weight;
+      if (r <= 0) return t;
+    }
+    return FISH_TYPES[0];
+  }
+
+  function spawnFish() {
+    const t = pickType();
     const fromLeft = Math.random() < 0.5;
     const y = rand(viewH * 0.12, viewH * 0.72);
     const speed = rand(50, 90) * t.speedMul * (fromLeft ? 1 : -1);
@@ -54,7 +67,8 @@
       y,
       vx: speed,
       wobble: rand(0, Math.PI * 2),
-      dir: fromLeft ? 1 : -1,
+      // Art faces LEFT by default, so flip when swimming rightward.
+      dir: fromLeft ? -1 : 1,
     });
   }
 
@@ -242,36 +256,19 @@
     for (const f of fish) {
       ctx.save();
       ctx.translate(f.x, f.y);
-      ctx.scale(f.dir, 1);
-      // shadow
-      ctx.fillStyle = "rgba(0,0,0,0.2)";
-      ctx.beginPath(); ctx.ellipse(0, f.r * 0.7, f.r, f.r * 0.35, 0, 0, Math.PI * 2); ctx.fill();
-      // tail (with a gentle flap)
-      const flap = Math.sin(f.wobble * 2) * f.r * 0.15;
-      ctx.fillStyle = shade(f.color, -0.15);
-      ctx.beginPath();
-      ctx.moveTo(f.r * 0.7, 0);
-      ctx.lineTo(f.r * 1.4, -f.r * 0.5 + flap);
-      ctx.lineTo(f.r * 1.4, f.r * 0.5 + flap);
-      ctx.closePath(); ctx.fill();
-      // dorsal fin
-      ctx.fillStyle = shade(f.color, -0.05);
-      ctx.beginPath();
-      ctx.moveTo(-f.r * 0.1, -f.r * 0.6);
-      ctx.quadraticCurveTo(f.r * 0.2, -f.r * 1.05, f.r * 0.45, -f.r * 0.5);
-      ctx.closePath(); ctx.fill();
-      // body
-      const gr = ctx.createRadialGradient(-f.r * 0.3, -f.r * 0.3, f.r * 0.2, 0, 0, f.r);
-      gr.addColorStop(0, "#ffffff");
-      gr.addColorStop(0.4, f.color);
-      gr.addColorStop(1, shade(f.color, -0.3));
-      ctx.fillStyle = gr;
-      ctx.beginPath(); ctx.ellipse(0, 0, f.r, f.r * 0.72, 0, 0, Math.PI * 2); ctx.fill();
-      // eye
-      ctx.fillStyle = "#fff";
-      ctx.beginPath(); ctx.arc(-f.r * 0.45, -f.r * 0.12, f.r * 0.22, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#111";
-      ctx.beginPath(); ctx.arc(-f.r * 0.5, -f.r * 0.12, f.r * 0.11, 0, Math.PI * 2); ctx.fill();
+      ctx.scale(f.dir, 1); // default art faces LEFT
+      // ground shadow
+      ctx.fillStyle = "rgba(0,0,0,0.18)";
+      ctx.beginPath(); ctx.ellipse(0, f.r * 0.8, f.r, f.r * 0.32, 0, 0, Math.PI * 2); ctx.fill();
+
+      switch (f.shape) {
+        case "long":   drawEel(f); break;
+        case "puffer": drawPuffer(f); break;
+        case "jelly":  drawJelly(f); break;
+        case "star":   drawStar(f); break;
+        case "shark":  drawShark(f); break;
+        default:       drawNormalFish(f); break;
+      }
       ctx.restore();
 
       // hp bar for tough fish
@@ -283,6 +280,153 @@
         ctx.fillRect(f.x - w / 2, f.y - f.r - 12, w * (f.hp / f.maxHp), 5);
       }
     }
+  }
+
+  // helpers shared by shapes -----------------------------------
+  function bodyGradient(f, rx, ry) {
+    const gr = ctx.createRadialGradient(-rx * 0.3, -ry * 0.4, rx * 0.15, 0, 0, Math.max(rx, ry));
+    gr.addColorStop(0, "#ffffff");
+    gr.addColorStop(0.4, f.color);
+    gr.addColorStop(1, shade(f.color, -0.3));
+    return gr;
+  }
+  function fishEye(f, ex, ey, er) {
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.arc(ex, ey, er, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#111";
+    ctx.beginPath(); ctx.arc(ex - er * 0.35, ey, er * 0.5, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawNormalFish(f) {
+    const flap = Math.sin(f.wobble * 2) * f.r * 0.15;
+    // tail
+    ctx.fillStyle = shade(f.color, -0.15);
+    ctx.beginPath();
+    ctx.moveTo(f.r * 0.7, 0);
+    ctx.lineTo(f.r * 1.4, -f.r * 0.5 + flap);
+    ctx.lineTo(f.r * 1.4, f.r * 0.5 + flap);
+    ctx.closePath(); ctx.fill();
+    // dorsal fin
+    ctx.fillStyle = shade(f.color, -0.05);
+    ctx.beginPath();
+    ctx.moveTo(-f.r * 0.1, -f.r * 0.6);
+    ctx.quadraticCurveTo(f.r * 0.2, -f.r * 1.05, f.r * 0.45, -f.r * 0.5);
+    ctx.closePath(); ctx.fill();
+    // stripes accent
+    // body
+    ctx.fillStyle = bodyGradient(f, f.r, f.r * 0.72);
+    ctx.beginPath(); ctx.ellipse(0, 0, f.r, f.r * 0.72, 0, 0, Math.PI * 2); ctx.fill();
+    // side fin
+    ctx.fillStyle = shade(f.color, -0.1);
+    ctx.beginPath();
+    ctx.moveTo(0, f.r * 0.1);
+    ctx.quadraticCurveTo(f.r * 0.2, f.r * 0.7, f.r * 0.45, f.r * 0.35);
+    ctx.closePath(); ctx.fill();
+    fishEye(f, -f.r * 0.45, -f.r * 0.12, f.r * 0.2);
+  }
+
+  function drawEel(f) {
+    // long wavy body
+    const len = f.r * 3.2, h = f.r * 0.6;
+    ctx.fillStyle = bodyGradient(f, len * 0.5, h);
+    ctx.beginPath();
+    ctx.moveTo(-len * 0.5, 0);
+    for (let i = 0; i <= 10; i++) {
+      const t = i / 10;
+      const x = -len * 0.5 + len * t;
+      const y = Math.sin(f.wobble * 2 + t * 6) * h * 0.5;
+      ctx.lineTo(x, y - h * (1 - t) * 0.5);
+    }
+    for (let i = 10; i >= 0; i--) {
+      const t = i / 10;
+      const x = -len * 0.5 + len * t;
+      const y = Math.sin(f.wobble * 2 + t * 6) * h * 0.5;
+      ctx.lineTo(x, y + h * (1 - t) * 0.5);
+    }
+    ctx.closePath(); ctx.fill();
+    fishEye(f, -len * 0.42, -h * 0.15, f.r * 0.18);
+  }
+
+  function drawPuffer(f) {
+    // spiky round ball
+    ctx.fillStyle = shade(f.color, -0.15);
+    const spikes = 14;
+    ctx.beginPath();
+    for (let i = 0; i < spikes; i++) {
+      const a = (i / spikes) * Math.PI * 2;
+      const rr = i % 2 === 0 ? f.r * 1.25 : f.r;
+      const x = Math.cos(a) * rr, y = Math.sin(a) * rr;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath(); ctx.fill();
+    // body
+    ctx.fillStyle = bodyGradient(f, f.r, f.r);
+    ctx.beginPath(); ctx.arc(0, 0, f.r, 0, Math.PI * 2); ctx.fill();
+    fishEye(f, -f.r * 0.4, -f.r * 0.15, f.r * 0.2);
+    // little pout
+    ctx.strokeStyle = shade(f.color, -0.4); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(-f.r * 0.7, f.r * 0.1, f.r * 0.18, -0.4, 0.9); ctx.stroke();
+  }
+
+  function drawJelly(f) {
+    // dome + dangling tentacles
+    ctx.fillStyle = bodyGradient(f, f.r, f.r);
+    ctx.beginPath(); ctx.arc(0, 0, f.r, Math.PI, 0); ctx.lineTo(f.r, f.r * 0.1); ctx.lineTo(-f.r, f.r * 0.1); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = shade(f.color, -0.1); ctx.lineWidth = 3; ctx.lineCap = "round";
+    for (let i = -2; i <= 2; i++) {
+      const x = i * f.r * 0.4;
+      ctx.beginPath();
+      ctx.moveTo(x, f.r * 0.1);
+      ctx.quadraticCurveTo(x + Math.sin(f.wobble * 2 + i) * 6, f.r * 0.8, x, f.r * 1.3);
+      ctx.stroke();
+    }
+    fishEye(f, -f.r * 0.3, -f.r * 0.25, f.r * 0.16);
+    fishEye(f, f.r * 0.3, -f.r * 0.25, f.r * 0.16);
+  }
+
+  function drawStar(f) {
+    ctx.fillStyle = bodyGradient(f, f.r, f.r);
+    const arms = 5;
+    ctx.beginPath();
+    for (let i = 0; i < arms * 2; i++) {
+      const a = (i / (arms * 2)) * Math.PI * 2 - Math.PI / 2;
+      const rr = i % 2 === 0 ? f.r * 1.3 : f.r * 0.55;
+      const x = Math.cos(a) * rr, y = Math.sin(a) * rr;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath(); ctx.fill();
+    // dots
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+      ctx.beginPath(); ctx.arc(Math.cos(a) * f.r * 0.7, Math.sin(a) * f.r * 0.7, f.r * 0.09, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  function drawShark(f) {
+    const flap = Math.sin(f.wobble * 2) * f.r * 0.12;
+    // tall tail
+    ctx.fillStyle = shade(f.color, -0.2);
+    ctx.beginPath();
+    ctx.moveTo(f.r * 0.8, 0);
+    ctx.lineTo(f.r * 1.6, -f.r * 0.8 + flap);
+    ctx.lineTo(f.r * 1.3, 0);
+    ctx.lineTo(f.r * 1.6, f.r * 0.5 + flap);
+    ctx.closePath(); ctx.fill();
+    // tall dorsal fin
+    ctx.fillStyle = shade(f.color, -0.1);
+    ctx.beginPath();
+    ctx.moveTo(0, -f.r * 0.6);
+    ctx.lineTo(f.r * 0.1, -f.r * 1.3);
+    ctx.lineTo(f.r * 0.5, -f.r * 0.5);
+    ctx.closePath(); ctx.fill();
+    // sleek body
+    ctx.fillStyle = bodyGradient(f, f.r * 1.15, f.r * 0.62);
+    ctx.beginPath(); ctx.ellipse(0, 0, f.r * 1.15, f.r * 0.62, 0, 0, Math.PI * 2); ctx.fill();
+    // mouth
+    ctx.strokeStyle = "rgba(0,0,0,0.5)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(-f.r * 1.1, f.r * 0.1); ctx.lineTo(-f.r * 0.55, f.r * 0.25); ctx.stroke();
+    fishEye(f, -f.r * 0.7, -f.r * 0.15, f.r * 0.16);
   }
 
   function drawBullets() {
