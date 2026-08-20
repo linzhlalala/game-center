@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="gmbg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6b4a2b"/>
+      <stop offset="1" stop-color="#3a2716"/>
+    </linearGradient>
+    <radialGradient id="gold" cx="38%" cy="34%" r="70%">
+      <stop offset="0" stop-color="#fff3b0"/>
+      <stop offset="55%" stop-color="#ffd23f"/>
+      <stop offset="100%" stop-color="#c8962a"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="0" y="0" width="128" height="128" rx="28" fill="url(#gmbg)"/>
+
+  <!-- rope -->
+  <line x1="64" y1="8" x2="64" y2="52" stroke="#d9c9a3" stroke-width="4"/>
+
+  <!-- claw / hook -->
+  <path d="M52 50 q12 14 24 0" fill="none" stroke="#c9ccd4" stroke-width="7" stroke-linecap="round"/>
+  <path d="M52 50 l-6 12 M76 50 l6 12" stroke="#c9ccd4" stroke-width="7" stroke-linecap="round" fill="none"/>
+
+  <!-- gold nugget -->
+  <circle cx="64" cy="86" r="26" fill="url(#gold)"/>
+  <circle cx="55" cy="76" r="6" fill="#fff" opacity="0.6"/>
+  <!-- sparkle -->
+  <path d="M92 40 l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3 l8 -3 z" fill="#fff3b0"/>
+</svg>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Fish Blaster</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="game-wrap">
+    <canvas id="game"></canvas>
+
+    <!-- HUD -->
+    <div id="hud">
+      <div class="hud-item"><span class="hud-label">Time</span><span id="timer">60s</span></div>
+      <div class="hud-item"><span class="hud-label">Score</span><span id="score">0</span></div>
+      <div class="hud-item"><span class="hud-label">Best</span><span id="best">0</span></div>
+    </div>
+
+    <!-- Start screen -->
+    <div id="start-screen" class="overlay">
+      <h1>🐟 Fish Blaster</h1>
+      <p>Tap anywhere to aim and fire. Hit a fish enough times to catch it — bigger fish are worth more but take more hits. Score as much as you can before time runs out!</p>
+      <p class="hint">Tap to shoot</p>
+      <button id="start-btn">Play</button>
+      <a class="back-link" href="../../index.html">← Back to Game Center</a>
+    </div>
+
+    <!-- Game over screen -->
+    <div id="over-screen" class="overlay hidden">
+      <h1>Time's Up!</h1>
+      <p>You scored <span id="final-score">0</span></p>
+      <button id="restart-btn">Play Again</button>
+      <a class="back-link" href="../../index.html">← Back to Game Center</a>
+    </div>
+  </div>
+
+  <script src="../../player.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Gold Miner</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="game-wrap">
+    <canvas id="game"></canvas>
+
+    <!-- HUD -->
+    <div id="hud">
+      <div class="hud-item"><span class="hud-label">Level</span><span id="level">1</span></div>
+      <div class="hud-item"><span class="hud-label">Time</span><span id="timer">60s</span></div>
+      <div class="hud-item"><span class="hud-label">Gold</span><span id="score">$0</span></div>
+      <div class="hud-item"><span class="hud-label">Goal</span><span id="goal">$650</span></div>
+    </div>
+
+    <!-- Start screen -->
+    <div id="start-screen" class="overlay">
+      <h1>⛏️ Gold Miner</h1>
+      <p>The claw swings by itself. Tap anywhere to drop it and grab gold, diamonds, and treasure. Heavy rocks are slow and worthless — reach the goal before time runs out!</p>
+      <p class="hint">Tap to drop the claw</p>
+      <button id="start-btn">Play</button>
+      <a class="back-link" href="../../index.html">← Back to Game Center</a>
+    </div>
+
+    <!-- Level cleared screen -->
+    <div id="win-screen" class="overlay hidden">
+      <h1>Level Clear!</h1>
+      <p>You collected <span id="win-score">$0</span></p>
+      <button id="next-btn">Next Level</button>
+      <a class="back-link" href="../../index.html">← Back to Game Center</a>
+    </div>
+
+    <!-- Game over screen -->
+    <div id="over-screen" class="overlay hidden">
+      <h1>Time's Up!</h1>
+      <p>You reached Level <span id="final-level">1</span> with <span id="final-score">$0</span></p>
+      <button id="restart-btn">Try Again</button>
+      <a class="back-link" href="../../index.html">← Back to Game Center</a>
+    </div>
+  </div>
+
+  <script src="../../player.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
